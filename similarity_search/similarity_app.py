@@ -30,6 +30,8 @@ if uploaded_file_1 and uploaded_file_2:
     sic_sections = df1['class'].tolist()
     sic_descriptions = df1['description'].tolist()
     company_classes = df2['class'].tolist()
+    company_comment = df2["Comments"].fillna("").tolist()
+    company_label = df2["Is Section C ?"].tolist()
     company_descriptions = df2['description'].tolist()
 
     # Compute embeddings for SIC descriptions
@@ -39,19 +41,21 @@ if uploaded_file_1 and uploaded_file_2:
     company_embeddings = model.encode(company_descriptions)
 
     # Compute cosine similarity
-    similarity_matrix = cosine_similarity(company_embeddings, sic_embeddings)
+    similarity_matrix = (1 + cosine_similarity(company_embeddings, sic_embeddings)) / 2
 
     # Prepare a DataFrame to show the results
     results = []
     for i, company_class in enumerate(company_classes):
-        for j, sic_class in enumerate(sic_sections):
-            results.append({
-                'Company Class': company_class,
-                'Company Description': company_descriptions[i],
-                'SIC Section': sic_class,
-                'SIC Description': sic_descriptions[j],
-                'Similarity Score': similarity_matrix[i, j]
-            })
+        max_similarity_idx = similarity_matrix[i].argmax()
+        results.append({
+            'Company Class': company_class,
+            'Company Description': company_descriptions[i],
+            'Company Label': company_label[i],
+            "Comment": company_comment[i],
+            'Most Similar SIC Section': sic_sections[max_similarity_idx],
+            'Most Similar SIC Description': sic_descriptions[max_similarity_idx],
+            'Similarity Score': similarity_matrix[i, max_similarity_idx]
+        })
 
     # Convert to DataFrame
     df_results = pd.DataFrame(results)
